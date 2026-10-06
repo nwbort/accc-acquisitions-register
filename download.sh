@@ -49,9 +49,24 @@ fi
 # Create temporary file
 TEMP_FILE=$(mktemp)
 
-# Download the file
+# Browser-like request: the ACCC's Akamai edge answers a bare curl request
+# with an "Access Denied" page, so send a current Chrome User-Agent and the
+# headers a real navigation carries. Matches scripts/scrape/scrape.sh in
+# nwbort/accc-mergers.
+USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+
+# Download the file. --fail makes a block page (HTTP 403) an error rather
+# than a file to commit over the last good copy.
 echo "Downloading $URL"
-curl -s -L "$URL" -o "$TEMP_FILE" || {
+curl -s -L --fail --compressed -A "$USER_AGENT" \
+  -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8' \
+  -H 'Accept-Language: en-AU,en;q=0.9' \
+  -H 'Upgrade-Insecure-Requests: 1' \
+  -H 'Sec-Fetch-Dest: document' \
+  -H 'Sec-Fetch-Mode: navigate' \
+  -H 'Sec-Fetch-Site: none' \
+  -H 'Sec-Fetch-User: ?1' \
+  "$URL" -o "$TEMP_FILE" || {
   echo "Error: Failed to download $URL"
   rm -f "$TEMP_FILE"
   exit 1
